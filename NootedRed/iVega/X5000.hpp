@@ -36,6 +36,7 @@ namespace iVega
         mach_vm_address_t             orgAdjustVRAMAddress{0};
         mach_vm_address_t             orgObtainAccelChannelGroup{0};
         mach_vm_address_t             orgHwlConvertChipFamily{0};
+        mach_vm_address_t             orgGetHardwareInfo{0};
 
     public:
         static X5000& singleton();
@@ -56,6 +57,7 @@ namespace iVega
         static void*  wrapObtainAccelChannelGroup(void* self, UInt32 priority);
         static void*  wrapObtainAccelChannelGroup1304(void* self, UInt32 priority, void* task);
         static UInt32 wrapHwlConvertChipFamily(void* self, UInt32 family, UInt32 revision);
+        static IOReturn wrapGetHardwareInfo(void* self, void* hwInfo);
     };
 
 };    // namespace iVega

@@ -152,6 +152,12 @@ void iVega::X5000::processKext(KernelPatcher& patcher, const size_t id, const ma
     PANIC_COND(!PenguinWizardry::PatternRouteRequest::routeAll(patcher, id, requests, slide, size), "X5000",
                "Failed to route symbols");
 
+    // Not fatal: only verified on macOS 26.7.1; without it dual-source blending keeps hanging GFX.
+    PenguinWizardry::PatternRouteRequest hwInfoRequest{
+        "__ZN29AMDRadeonX5000_AMDAccelDevice15getHardwareInfoEP24_sAMD_GET_HW_INFO_VALUES", wrapGetHardwareInfo,
+        this->orgGetHardwareInfo};
+    if (!hwInfoRequest.route(patcher, id, slide, size)) { SYSLOG("X5000", "Failed to route getHardwareInfo"); }
+
     if (currentKernelVersion() >= MACOS_13_4) {
         PenguinWizardry::PatternRouteRequest request{
             "__ZN37AMDRadeonX5000_AMDGraphicsAccelerator23obtainAccelChannelGroupE11SS_"
@@ -372,4 +378,13 @@ UInt32 iVega::X5000::wrapHwlConvertChipFamily(void* const self, const UInt32 fam
         return ADDR_CHIP_FAMILY_AI;
     }
     return FunctionCast(wrapHwlConvertChipFamily, singleton().orgHwlConvertChipFamily)(self, family, revision);
+}
+
+// The user-space GFX9 GL/Metal drivers pick a hardcoded HW-info table by this chip revision. Vega 10's (1/2) leaves
+// RB+ unprogrammed, which hangs GFX on any dual-source blend on Raven/Renoir; Vega 12's (0x14) makes them program RB+.
+IOReturn iVega::X5000::wrapGetHardwareInfo(void* const self, void* const hwInfo)
+{
+    const auto ret = FunctionCast(wrapGetHardwareInfo, singleton().orgGetHardwareInfo)(self, hwInfo);
+    if (ret == kIOReturnSuccess && hwInfo != nullptr) { getMember<UInt32>(hwInfo, 0x8) = 0x14; }
+    return ret;
 }
