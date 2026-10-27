@@ -59,7 +59,11 @@ bool iVega::DriverInjector::wrapAddDrivers(void* const self, OSArray* const arra
         if (bundleIdentifier == nullptr || bundleIdentifier->getLength() == 0) { continue; }
 
         const auto toInjectCount = checkKernelArgument("-NRedNoAccel") ? 2 : arrsize(singleton().drivers);
+        // -NRedNoX5000: keep the framebuffer, HDA and HWServices (the X6000 controller needs it) but not the X5000
+        // accelerator, so WindowServer can composite on another GPU (muxless NVIDIA laptops)
+        const bool noX5000 = checkKernelArgument("-NRedNoX5000");
         for (size_t identifierIndex = 0; identifierIndex < toInjectCount; identifierIndex += 1) {
+            if (noX5000 && identifierIndex == 2) { continue; }
             auto& driver = singleton().drivers[identifierIndex];
 
             if ((singleton().matchedDrivers & getBit(identifierIndex)) != 0
